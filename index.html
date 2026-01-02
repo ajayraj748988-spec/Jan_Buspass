@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>eTMS Digital Bus Pass</title>
+    <!-- Load Tailwind CSS --><script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Configure Tailwind to use Inter font and custom colors --><script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        // A generic serif/cursive font for 'tcs'
+                        tcs: ['Georgia', 'serif', 'cursive'], 
+                    },
+                    colors: {
+                        // UPDATED: Rich Violet color for Header/Buttons
+                        'etms-primary': '#5C2D91', 
+                        // Accent color for hover/small elements
+                        'etms-accent': '#7A4DAB', /* Slightly lighter accent for hover */
+                        // Route card background start color (ADJUSTED for darker blue)
+                        'etms-route-start': '#1D4ED8', /* Darkened Blue */
+                        // Route card background end color (ADJUSTED for vibrant purple)
+                        'etms-route-end': '#6D28D9', /* Darkened Violet */
+                        // TCS Logo/Route text color (Dark blue/black for logo text)
+                        'etms-dark-text': '#1f2937',
+                        // Confirmed Bus Pass green border color
+                        'etms-green-accent': '#22c55e', 
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Custom styles to mimic a hand-held mobile device look */
+        #app-container {
+            max-width: 400px; /* Standard mobile width */
+            margin: 0 auto;
+            min-height: 85vh; /* Increased minimum height for better view */
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            border-radius: 2rem;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            background-color: #f8fafc; /* Light background */
+            font-family: 'Inter', sans-serif;
+        }
+        
+        /* Styles for the key-value alignment in the details card */
+        .pass-label {
+            color: #6b7280; /* Soft Gray */
+            font-size: 0.9rem; 
+            font-weight: 400; /* Normal weight for label */
+            padding-bottom: 0.25rem;
+        }
+        
+        .pass-value-small {
+            /* UPDATED: Softer black/dark gray color */
+            color: #374151; 
+            /* Set content values to normal weight */
+            font-weight: 400; 
+            font-size: 0.95rem; 
+        }
+
+        /* The overall grid container for the details section (Two main columns) */
+        .details-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+        }
+
+        /* Ensure scrollable content fits */
+        #content-area {
+            flex-grow: 1;
+            overflow-y: auto;
+            padding: 1rem; 
+            padding-top: 0.5rem;
+        }
+        
+        /* Adjusting the gradient colors to FINAL MATCH */
+        .from-etms-route-start {
+            --tw-gradient-from: #1D4ED8; /* Darkened Blue */
+        }
+        .to-etms-route-end {
+            --tw-gradient-to: #6D28D9; /* Darkened Violet */
+        }
+
+        /* Specific style for the exchange symbol */
+        #exchange-symbol {
+            font-size: 1.5rem;
+            line-height: 1;
+        }
+
+        /* Custom shape for the green accent (REMOVED PSEUDO, now handled by HTML element) */
+        .details-card-container {
+            position: relative;
+            background-color: white;
+            border-radius: 0.75rem; /* rounded-xl */
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); /* shadow-lg */
+            margin-left: 0.5rem; /* mx-2 */
+            margin-right: 0.5rem; /* mx-2 */
+            margin-top: 0; /* mt-0 */
+            overflow: hidden;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen p-4 flex items-center justify-center">
+
+    <div id="app-container" class="w-full">
+        <!-- App Header (Always Visible, Top Bar) -->
+        <!-- UPDATED: Reduced vertical padding from py-3 to py-2 -->
+        <header class="text-white px-4 py-2 flex justify-between items-center shadow-lg sticky top-0 z-10 rounded-t-2xl" style="background-color: #5C2D91;">
+            
+            <!-- NEW: Left-aligned group for Button and Title with space-x-3 for offset -->
+            <div class="flex items-center space-x-3">
+                <button id="nav-button" onclick="toggleView()" class="text-xl p-1 rounded-full hover:bg-etms-accent transition-colors duration-200">
+                    <!-- Icon will be set dynamically -->
+                </button>
+                <!-- Title is now positioned relative to the menu button. Reduced font size to text-base (default) -->
+                <h1 class="text-base font-medium">Digital Bus Pass</h1>
+            </div>
+            
+            <!-- Placeholder for notification icon (remains pinned to the far right) -->
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+            </svg>
+        </header>
+
+        <!-- Permanent Route & Timing Block Wrapper --><div id="route-header-wrapper" class="p-4 pt-4 pb-0">
+            <!-- UPDATED: Reduced vertical padding in the wrapper from p-4 to px-4 py-2 -->
+            <div id="route-header-block" class="bg-gradient-to-r from-etms-route-start to-etms-route-end text-white rounded-xl shadow-lg px-4 py-2">
+                
+                <!-- Route Stack (Cmbt, Symbol, Siruseri) - UPDATED: Reduced vertical padding from pt-2 pb-2 to pt-1 pb-1 -->
+                <div class="flex flex-col items-center text-center font-normal pt-1 pb-1"> 
+                    <span class="text-2xl">Cmbt</span>
+                    <!-- FINAL EXCHANGE SYMBOL: Unicode character ⇄ --><span id="exchange-symbol" class="my-1 text-2xl">&#8644;</span>
+                    <span class="text-2xl">Siruseri</span>
+                </div>
+
+                <!-- Office In/Out - UPDATED: Reduced vertical padding from pt-1 pb-1 to pt-1 pb-1 (Kept minimal) -->
+                <div class="flex text-sm font-medium px-4 pt-1 pb-1 justify-between"> 
+                    <span>Office In - 09:00</span>
+                    <span>Office Out - 16:00</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content Area --><main id="content-area" class="flex-grow space-y-4 px-2"></main>
+
+        <!-- Footer (Always Visible) --><footer class="p-4 bg-white rounded-b-2xl flex items-center justify-center">
+            
+            <!-- TCS Logo Section --><div class="flex items-start justify-center pt-2 pb-1 space-x-1">
+                <!-- 'tcs' part (Custom font-tcs class, larger, italic) --><span class="text-4xl font-tcs text-etms-dark-text leading-none italic" style="text-shadow: 1px 1px 2px rgba(0,0,0,0.1);">tcs</span>
+                
+                <!-- TATA CONSULTANCY SERVICES part (Stacked on the right) --><div class="flex flex-col text-left text-xs text-etms-dark-text leading-tight mt-1">
+                    <span class="font-extrabold text-sm">TATA</span> 
+                    <span>CONSULTANCY</span>
+                    <span>SERVICES</span>
+                </div>
+            </div>
+        </footer>
+    </div>
+
+    <script>
+        // --- DATA MODEL (MOCK DATA) ---
+        const passData = {
+            // UPDATED
+            name: "Kirubanithi P", 
+            employeeId: "2886444",
+            // UPDATED
+            busStopName: "Cmbt",
+            routeType: "Both",
+            startDate: "1st Jan, 2026",
+            endDate: "31st Jan, 2026",
+            // UPDATED: Combined into a single string as requested
+            route_main: "Route : Cmbt To SiruseriVia-Alandur", 
+            // route_via is now an empty string as its content was merged above
+            route_via: "",
+            status: "Confirmed",
+            // UPDATED: Using the new QR code URL with 450x450 size
+            qrCodeUrl: "https://api.qrserver.com/v1/create-qr-code/?size=450x450&data=data:text/html;charset=utf-8,%3C!DOCTYPE%20html%3E%3Chtml%3E%3Chead%3E%3Ctitle%3EDigital%20Bus%20Pass%3C/title%3E%3Cstyle%3E*%7Bmargin%3A0%3Bpadding%3A0%3Bbox-sizing%3Aborder-box%3Bfont-family%3AArial%2Csans-serif%7Dbody%7Bbackground%3A%23f5f5f5%3Bdisplay%3Aflex%3Bjustify-content%3Acenter%3Balign-items%3Acenter%3Bmin-height%3A100vh%3Bpadding%3A20px%7D.container%7Bwidth%3A100%25%3Bmax-width%3A400px%3Bbackground%3Awhite%3Bborder-radius%3A10px%3Bbox-shadow%3A0%200%2010px%20rgba(0%2C0%2C0%2C.1)%3Boverflow%3Ahidden%7D.header%7Bbackground%3A%231a73e8%3Bcolor%3Awhite%3Bpadding%3A20px%3Btext-align%3Acenter%7D.route-info%7Bbackground%3A%23e8f0fe%3Bpadding%3A15px%3Bdisplay%3Aflex%3Bjustify-content%3Aspace-between%3Bborder-bottom%3A1px%20dashed%20%23ccc%7D.pass-details%7Bpadding%3A20px%7D.qr-container%7Bdisplay%3Aflex%3Bjustify-content%3Acenter%3Balign-items%3Acenter%7D%3C/style%3E%3C/head%3E%3Cbody%3E%3Cdiv%20class%3D%22container%22%3E%3Ch1%3EDigital%20Bus%20Pass%3C/h1%3E%3Cdiv%20class%3D%22qr-container%22%3EQR%20DATA%20WORKING%3C/div%3E%3C/div%3E%3C/body%3E%3C/html%3E", 
+        };
+
+        // --- STATE MANAGEMENT ---
+        let currentPage = 'details'; // 'details' or 'qr'
+        const contentArea = document.getElementById('content-area');
+        const navButton = document.getElementById('nav-button');
+
+        // --- VIEWS ---
+
+        function getDetailsView() {
+            return `
+                <div class="details-card-container">
+                    <!-- Confirmed Bus Pass Title --><div class="relative">
+                        <!-- Subtle Green Corner Accent (MATCHING SCREENSHOT) --><div class="absolute top-0 left-0 w-3 h-3" style="background-color: #22c55e; border-bottom-right-radius: 5px;"></div>
+
+                        <h2 class="text-lg font-medium text-gray-900 text-center py-3 border-b-2 border-dashed border-gray-300">
+                            ${passData.status} Bus Pass
+                        </h2>
+                    </div>
+                    
+                    <!-- 4-Column Grid Layout for Details (Values below labels) --><div class="p-6 pb-2 text-gray-800 text-sm space-y-6">
+                        
+                        <!-- Row 1: Name & Employee ID --><div class="details-grid">
+                            <!-- Name (Left side) --><div class="flex flex-col text-left">
+                                <span class="pass-label">Name</span>
+                                <span class="pass-value-small">${passData.name}</span>
+                            </div>
+                            <!-- Employee ID (Right side, entire stack aligned right) --><div class="flex flex-col text-right"> 
+                                <span class="pass-label">Employee ID</span>
+                                <span class="pass-value-small">${passData.employeeId}</span>
+                            </div>
+                        </div>
+                        
+                        <!-- Row 2: Bus Stop Name & Route Type --><div class="details-grid">
+                            <!-- Bus Stop Name (Left side) --><div class="flex flex-col text-left">
+                                <span class="pass-label">Bus Stop Name</span>
+                                <span class="pass-value-small">${passData.busStopName}</span>
+                            </div>
+                            <!-- Route Type (Right side, entire stack aligned right) --><div class="flex flex-col text-right">
+                                <span class="pass-label">Route Type</span>
+                                <span class="pass-value-small">${passData.routeType}</span>
+                            </div>
+                        </div>
+
+                        <!-- Row 3: Start Date & End Date --><div class="details-grid">
+                            <!-- Start Date (Left side) --><div class="flex flex-col text-left">
+                                <span class="pass-label">Start Date</span>
+                                <span class="pass-value-small">${passData.startDate}</span>
+                            </div>
+                            <!-- End Date (Right side, entire stack aligned right) --><div class="flex flex-col text-right">
+                                <span class="pass-label">End Date</span>
+                                <span class="pass-value-small">${passData.endDate}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Full Width Route Description (Centered, NOW A SINGLE LINE) --><div class="pt-4 pb-6 px-6 text-center text-sm font-medium text-gray-900">
+                        <p class="leading-snug">${passData.route_main}${passData.route_via}</p>
+                    </div>
+                </div>
+
+                <!-- View QR Button - UPDATED: Reduced vertical padding to py-2 and increased bottom margin to mb-6 -->
+                <button onclick="toggleView()" class="w-full bg-etms-primary hover:bg-etms-accent transition-colors duration-300 text-white font-normal py-2 px-4 rounded-xl shadow-md mt-4 mx-2 mb-6">
+                    View QR
+                </button>
+            `;
+        }
+
+        function getQrView() {
+            return `
+                <div class="details-card-container">
+                    <!-- Confirmed Bus Pass Title --><div class="relative">
+                        <!-- Subtle Green Corner Accent (REPLICATED FOR CONSISTENCY) --><div class="absolute top-0 left-0 w-3 h-3" style="background-color: #22c55e; border-bottom-right-radius: 5px;"></div>
+                        <h2 class="text-lg font-medium text-gray-900 text-center py-3 border-b-2 border-dashed border-gray-300">
+                            ${passData.status} Bus Pass
+                        </h2>
+                    </div>
+
+                    <!-- QR Code Centered and enlarged --><div class="pb-6 pt-6 px-6 text-center flex flex-col items-center justify-center">
+                        <!-- QR Code Image - Adjusted padding and removed border to match the screenshot --><img src="${passData.qrCodeUrl}" alt="Digital Bus Pass QR Code" 
+                            class="w-full max-w-xs rounded-lg bg-white transition-transform duration-500 ease-in-out transform hover:scale-105"
+                            style="aspect-ratio: 1 / 1; padding: 0.75rem;" /* Added padding inside the image tag itself */
+                            onerror="this.onerror=null; this.src='https://placehold.co/400x400/ef4444/ffffff?text=QR%20Load%20Error';"
+                        >
+                    </div>
+                </div>
+
+                <!-- Button to go back to details - UPDATED: Reduced vertical padding to py-2 and increased bottom margin to mb-6 -->
+                <button onclick="toggleView()" class="w-full bg-etms-primary hover:bg-etms-accent transition-colors duration-300 text-white font-normal py-2 px-4 rounded-xl shadow-md mt-4 mx-2 mb-6">
+                    View Details
+                </button>
+            `;
+        }
+
+
+        // --- CONTROLLER / RENDER LOGIC ---
+
+        function toggleView() {
+            currentPage = currentPage === 'details' ? 'qr' : 'details';
+            renderApp();
+        }
+
+        function renderApp() {
+            if (currentPage === 'details') {
+                contentArea.innerHTML = getDetailsView();
+                // Set nav button icon to menu
+                navButton.innerHTML = `
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+                    </svg>
+                `;
+            } else {
+                contentArea.innerHTML = getQrView();
+                // Set nav button icon to back arrow
+                navButton.innerHTML = `
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                    </svg>
+                `;
+            }
+            
+            // Scroll content to top on view change
+            contentArea.scrollTop = 0;
+        }
+
+        // Initialize the app on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            renderApp();
+        });
+    </script>
+</body>
+</html>
